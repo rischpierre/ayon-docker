@@ -43,8 +43,8 @@ services:
 
       # uncomment the following line if you need to work on the backend code
       # - "./backend:/backend"
-    ports:
-      - "5000:5000"
+    expose:
+      - "5000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -68,8 +68,8 @@ services:
 
       # uncomment the following line if you need to work on the backend code
       # - "./backend:/backend"
-    ports:
-      - "5000:5000"
+    expose:
+      - "5000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,8 +93,8 @@ services:
 
       # uncomment the following line if you need to work on the backend code
       # - "./backend:/backend"
-    ports:
-      - "5000:5000"
+    expose:
+      - "5000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -107,17 +107,35 @@ services:
       - yacht_default
 
 
+  load-balancer:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - "./nginx.conf:/etc/nginx/nginx.conf:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+    depends_on:
+      - server-1
+      - server-2
+      - server-3
+    networks:
+      - yacht_default
+
+
   worker:
     image: ynput/ayon-ash:latest
     hostname: worker
     restart: unless-stopped
 #    network_mode: host
     depends_on:
-     - server
+      - server-1
+      - server-2
+      - server-3
     volumes:
      - "/var/run/docker.sock:/var/run/docker.sock"
     environment:
-      - "AYON_API_KEY={AYON_API_KEY}"
+      - "AYON_API_KEY=${AYON_API_KEY}"
       - "AYON_SERVER_URL=http://huskarl02.eu.rvx.is:5000"
     networks:
       - yacht_default
