@@ -1,55 +1,39 @@
 services:
   postgres:
-    image: postgres:${AYON_STACK_POSTGRES_TAG:-15}
+    image: postgres:15
+    expose:
+      - 5432
+    ports:
+      - "5432:5432"
+    environment:
+      - "POSTGRES_USER=ayon"
+      - "POSTGRES_PASSWORD=ayon"
+      - "POSTGRES_DB=ayon"
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "db:/var/lib/postgresql/data"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ayon"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - yacht_default
 
-    expose: [5432]
-
-    volumes:
-      - "/etc/localtime:/etc/localtime:ro"
-      - "db:/var/lib/postgresql/data"
-
-    environment:
-      - "POSTGRES_USER=ayon"
-      - "POSTGRES_PASSWORD=ayon"
-      - "POSTGRES_DB=ayon"
 
   redis:
     image: redis:alpine
+    expose:
+      - 6379
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-    expose: [6379]
+    networks:
+      - yacht_default
 
 
-  server:
-    image: ynput/ayon:${AYON_STACK_SERVER_TAG:-latest}
+  server-1:
+    image: ynput/ayon:1.13.10-20260205
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/info"]
-      interval: 10s
-      timeout: 2s
-      retries: 3
-
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-
-    expose: [5000]
-    ports: 
-      - ${AYON_STACK_SERVER_PORT:-5000}:5000
-
     volumes:
       - "./addons:/addons"
       - "./storage:/storage"
@@ -59,6 +43,90 @@ services:
 
       # uncomment the following line if you need to work on the backend code
       # - "./backend:/backend"
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - "AYON_POSTGRES_URL=postgres://ayon:ayon@postgres/ayon"
+      - "AYON_OFFLINE_MODE=true"
+    networks:
+      - yacht_default
+
+  server-2:
+    image: ynput/ayon:1.13.10-20260205
+    restart: unless-stopped
+    volumes:
+      - "./addons:/addons"
+      - "./storage:/storage"
+
+      # comment out the following line on Windows
+      - "/etc/localtime:/etc/localtime:ro"
+
+      # uncomment the following line if you need to work on the backend code
+      # - "./backend:/backend"
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - "AYON_POSTGRES_URL=postgres://ayon:ayon@postgres/ayon"
+      - "AYON_OFFLINE_MODE=true"
+    networks:
+      - yacht_default
+
+  server-3:
+    image: ynput/ayon:1.13.10-20260205
+    restart: unless-stopped
+    volumes:
+      - "./addons:/addons"
+      - "./storage:/storage"
+
+      # comment out the following line on Windows
+      - "/etc/localtime:/etc/localtime:ro"
+
+      # uncomment the following line if you need to work on the backend code
+      # - "./backend:/backend"
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - "AYON_POSTGRES_URL=postgres://ayon:ayon@postgres/ayon"
+      - "AYON_OFFLINE_MODE=true"
+    networks:
+      - yacht_default
+
+
+  worker:
+    image: ynput/ayon-ash:latest
+    hostname: worker
+    restart: unless-stopped
+#    network_mode: host
+    depends_on:
+     - server
+    volumes:
+     - "/var/run/docker.sock:/var/run/docker.sock"
+    environment:
+      - "AYON_API_KEY={AYON_API_KEY}"
+      - "AYON_SERVER_URL=http://huskarl02.eu.rvx.is:5000"
+    networks:
+      - yacht_default
+
 
 volumes:
   db: {}
+
+networks:
+    yacht_default:
+        external: true
+
