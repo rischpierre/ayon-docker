@@ -14,15 +14,20 @@ assert AYON_API_KEY
 assert AYON_SERVER_URL
 
 ayon_api.init_service(
-        token=AYON_API_KEY,
-        server_url=AYON_SERVER_URL,
+    token=AYON_API_KEY,
+    server_url=AYON_SERVER_URL,
 )
 
 PROJECT = "pet_project3"
 
 
 def random_query(random_ids):
-    get_entity, ids = random.choice(((ayon_api.get_version_by_id, random_ids["versions"]), (ayon_api.get_folder_by_id, random_ids["folders"])))
+    get_entity, ids = random.choice(
+        (
+            (ayon_api.get_version_by_id, random_ids["versions"]),
+            (ayon_api.get_folder_by_id, random_ids["folders"]),
+        )
+    )
     try:
         selected_id = random.choice(ids)
         result = get_entity(PROJECT, selected_id)
@@ -30,6 +35,27 @@ def random_query(random_ids):
     except Exception as e:
         print(f"error: {e}")
 
+def random_version_update(random_ids):
+    ids = random_ids["versions"]
+    statuses = ("Not ready", "In progress")
+    try:
+
+        selected_id = random.choice(ids)
+        version = ayon_api.get_version_by_id(PROJECT, selected_id)
+
+        if not version:
+            raise RuntimeError("no version")
+
+        original_status = version["status"]
+        new_status = next((s for s in statuses if s != original_status), None)
+        if not new_status:
+            raise RuntimeError("no status")
+
+        ayon_api.update_version(PROJECT, selected_id, status=new_status)
+        ayon_api.update_version(PROJECT, selected_id, status=original_status)
+
+    except Exception as e:
+        print(f"error: {e}")
 
 def export_ids_to_file(file_):
     folders = list(ayon_api.get_folders(PROJECT))
@@ -50,20 +76,32 @@ def export_ids_to_file(file_):
 
 def get_ids(file_):
     import json
+
     data = {}
     with open(file_, "r") as fp:
         data = json.load(fp)
     return data[PROJECT]
+
 
 def main():
     # export_ids_to_file("random_ids.json")
     random_ids = get_ids("random_ids.json")
 
     with ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
-        futures = [
-            executor.submit(random_query,random_ids)
-            for i in range(REQUESTS_PER_THREAD)
-        ]
+        futures = []
+        for _ in range(REQUESTS_PER_THREAD):
+            f = random.choice(
+                (
+                    # 5:1 query:update ratio
+                    random_version_update,
+                    random_query,
+                    random_query,
+                    random_query,
+                    random_query,
+                    random_query,
+                )
+            )
+            futures.append(executor.submit(f, random_ids))
 
         for future in as_completed(futures):
             try:
