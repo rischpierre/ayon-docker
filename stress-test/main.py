@@ -116,6 +116,8 @@ def random_query_huge(random_ids):
            
         """
         result = ayon_api.query_graphql(query)
+        if result.data.get("data"):
+            print("data available")
         # from pympler import asizeof
         # print(asizeof.asizeof(result.data["data"]) / 1024 / 1024, "MB")
             
