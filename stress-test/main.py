@@ -116,8 +116,8 @@ def random_query_huge(random_ids):
            
         """
         result = ayon_api.query_graphql(query)
-        from pympler import asizeof
-        print(asizeof.asizeof(result.data["data"]) / 1024 / 1024, "MB")
+        # from pympler import asizeof
+        # print(asizeof.asizeof(result.data["data"]) / 1024 / 1024, "MB")
             
     except Exception as e:
         print(f"error: {e}")
@@ -199,7 +199,7 @@ def main():
                     random_query,
                     random_query,
                     random_query,
-                    random_query,
+                    # random_query_huge,
                 )
             )
             futures.append(executor.submit(f, random_ids))

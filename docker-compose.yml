@@ -131,6 +131,8 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:5000"
+      - "--log.level=ERROR"
+      - "--accesslog=false"
     depends_on:
       - server-1
       - server-2
