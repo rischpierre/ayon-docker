@@ -53,6 +53,11 @@ services:
     environment:
       - "AYON_POSTGRES_URL=postgres://ayon:ayon@postgres/ayon"
       - "AYON_OFFLINE_MODE=true"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.ayon.loadbalancer.server.port=5000"
+      - "traefik.http.routers.ayon.entrypoints=web"
+      - "traefik.http.routers.ayon.rule=PathPrefix(`/`)"
     networks:
       - yacht_default
 
@@ -78,6 +83,9 @@ services:
     environment:
       - "AYON_POSTGRES_URL=postgres://ayon:ayon@postgres/ayon"
       - "AYON_OFFLINE_MODE=true"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.ayon.loadbalancer.server.port=5000"
     networks:
       - yacht_default
 
@@ -103,18 +111,26 @@ services:
     environment:
       - "AYON_POSTGRES_URL=postgres://ayon:ayon@postgres/ayon"
       - "AYON_OFFLINE_MODE=true"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.ayon.loadbalancer.server.port=5000"
     networks:
       - yacht_default
 
 
-  load-balancer:
-    image: nginx:alpine
+  load-balancer-traefik:
+    image: traefik:v3
     restart: unless-stopped
     ports:
       - "5000:5000"
     volumes:
-      - "./nginx.conf:/etc/nginx/nginx.conf:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "/etc/localtime:/etc/localtime:ro"
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:5000"
     depends_on:
       - server-1
       - server-2
