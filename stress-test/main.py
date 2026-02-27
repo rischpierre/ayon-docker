@@ -21,6 +21,107 @@ ayon_api.init_service(
 PROJECT = "pet_project3"
 
 
+def random_query_huge(random_ids):
+    shots = list(ayon_api.get_folders(PROJECT, folder_types=["Shot"]))
+    assert shots
+    shots_ids = [x["id"] for x in shots]
+    try:
+        selected_id = random.choice(shots_ids)
+        # selected_id = 'c80d6c8efb1711edaeef901b0e2e41d2'
+        query = f"""
+            query MyQuery {{
+              project(name: "{PROJECT}") {{
+                folder(id: "{selected_id}") {{
+                  products {{
+                    edges {{
+                      node {{
+                        versions {{
+                          edges {{
+                            node {{
+                              active
+                              allAttrib
+                              author
+                              createdAt
+                              createdBy
+                              data
+                              featuredVersionType
+                              hasReviewables
+                              heroVersionId
+                              id
+                              isLatest
+                              isLatestDone
+                              name
+                              parents
+                              path
+                              productId
+                              projectName
+                              status
+                              tags
+                              taskId
+                              thumbnailId
+                              updatedAt
+                              updatedBy
+                              version
+                              representations {{
+                                edges {{
+                                  node {{
+                                    active
+                                    allAttrib
+                                    context
+                                    createdBy
+                                    createdAt
+                                    data
+                                    fileCount
+                                    id
+                                    name
+                                    parents
+                                    path
+                                    projectName
+                                    status
+                                    tags
+                                    traits
+                                    updatedAt
+                                    updatedBy
+                                    versionId
+                                  }}
+                                }}
+                              }}
+                            }}
+                          }}
+                        }}
+                        active
+                        allAttrib
+                        createdAt
+                        createdBy
+                        data
+                        folderId
+                        id
+                        name
+                        parents
+                        path
+                        productBaseType
+                        productType
+                        projectName
+                        status
+                        tags
+                        type
+                        updatedAt
+                        updatedBy
+                      }}
+                    }}
+                  }}
+                }}
+              }}
+            }}
+           
+        """
+        result = ayon_api.query_graphql(query)
+        from pympler import asizeof
+        print(asizeof.asizeof(result.data["data"]) / 1024 / 1024, "MB")
+            
+    except Exception as e:
+        print(f"error: {e}")
+
 def random_query(random_ids):
     get_entity, ids = random.choice(
         (
