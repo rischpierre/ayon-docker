@@ -93,33 +93,33 @@ services:
     networks:
       - yacht_default
 
-  server-3:
-    image: ynput/ayon:1.13.10-20260205
-    restart: unless-stopped
-    volumes:
-      - "./addons:/addons"
-      - "./storage:/storage"
+  # server-3:
+  #   image: ynput/ayon:1.13.10-20260205
+  #   restart: unless-stopped
+  #   volumes:
+  #     - "./addons:/addons"
+  #     - "./storage:/storage"
 
-      # comment out the following line on Windows
-      - "/etc/localtime:/etc/localtime:ro"
+  #     # comment out the following line on Windows
+  #     - "/etc/localtime:/etc/localtime:ro"
 
-      # uncomment the following line if you need to work on the backend code
-      # - "./backend:/backend"
-    expose:
-      - "5000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    environment:
-      - "AYON_POSTGRES_URL=postgres://ayon:ayon@postgres:5432/ayon"
-      - "AYON_OFFLINE_MODE=true"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.services.ayon.loadbalancer.server.port=5000"
-    networks:
-      - yacht_default
+  #     # uncomment the following line if you need to work on the backend code
+  #     # - "./backend:/backend"
+  #   expose:
+  #     - "5000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_started
+  #   environment:
+  #     - "AYON_POSTGRES_URL=postgres://ayon:ayon@postgres:5432/ayon"
+  #     - "AYON_OFFLINE_MODE=true"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.services.ayon.loadbalancer.server.port=5000"
+  #   networks:
+  #     - yacht_default
 
 
   load-balancer-traefik:
@@ -140,7 +140,7 @@ services:
     depends_on:
       - server-1
       - server-2
-      - server-3
+      # - server-3
     networks:
       - yacht_default
 
@@ -153,7 +153,7 @@ services:
     depends_on:
       - server-1
       - server-2
-      - server-3
+      # - server-3
     volumes:
      - "/var/run/docker.sock:/var/run/docker.sock"
     environment:

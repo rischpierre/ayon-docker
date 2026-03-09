@@ -6,8 +6,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import ayon_api
 
 PROJECT = "pet_project3"
+ROUNDS = 20   # how long to keep this test going
 NUM_THREADS = 10
-REQUESTS_PER_THREAD = 3 * 1000
+REQUESTS_PER_THREAD = 300
 AYON_API_KEY = os.environ["AYON_API_KEY"]
 AYON_SERVER_URL = os.environ["AYON_SERVER_URL"]
 assert AYON_API_KEY
@@ -189,28 +190,28 @@ def get_ids(file_):
 def main():
     # export_ids_to_file("random_ids.json")
     random_ids = get_ids("random_ids.json")
-
-    with ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
-        futures = []
-        for _ in range(REQUESTS_PER_THREAD):
-            f = random.choice(
-                (
-                    # 5:1 query:update ratio
-                    random_version_update,
-                    random_query,
-                    random_query,
-                    random_query,
-                    random_query,
-                    random_query_huge,
+    for _ in range(ROUNDS):
+        with ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
+            futures = []
+            for _ in range(REQUESTS_PER_THREAD):
+                f = random.choice(
+                    (
+                        # 5:1 query:update ratio
+                        random_version_update,
+                        random_query,
+                        random_query,
+                        random_query,
+                        random_query,
+                        random_query_huge,
+                    )
                 )
-            )
-            futures.append(executor.submit(f, random_ids))
+                futures.append(executor.submit(f, random_ids))
 
-        for future in as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                print(f"Worker error: {e}")
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"Worker error: {e}")
 
 
 if __name__ == "__main__":

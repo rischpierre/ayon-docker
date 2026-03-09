@@ -1,0 +1,90 @@
+version: "3.7"
+
+services:
+  postgres:
+    shm_size: "8g"
+    image: postgres:15
+    expose:
+      - 5432
+    ports:
+      - "5432:5432"
+    environment:
+      - "POSTGRES_USER=ayon"
+      - "POSTGRES_PASSWORD=ayon"
+      - "POSTGRES_DB=ayon"
+    command: ["-c", "shared_buffers=8GB", "-c","effective_cache_size=24GB","-c","work_mem=64MB","-c","max_wal_size=4GB","-c","min_wal_size=4GB","-c","checkpoint_completion_target=0.9","-c","log_min_duration_statement=500ms","-c","maintenance_work_mem=1.6GB","-c","random_page_cost=1.5","-c","effective_io_concurrency=4","-c","jit=off","-c","default_statistics_target=200","-c","autovacuum_vacuum_scale_factor=0.05"]
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "db:/var/lib/postgresql/data"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ayon"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    expose:
+      - 6379
+    restart: unless-stopped
+    # TODO: This check floods logs (too many writes)
+    # healthcheck:
+    #   test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+    #   interval: 5s
+    #   timeout: 5s
+    #   retries: 5
+
+  server:
+    image: ynput/ayon:1.13.10-20260205
+    restart: unless-stopped
+    volumes:
+      - "./addons:/addons"
+      - "./storage:/storage"
+      
+      # comment out the following line on Windows
+      - "/etc/localtime:/etc/localtime:ro"
+      
+      # uncomment the following line if you need to work on the backend code
+      # - "./backend:/backend"
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - "AYON_POSTGRES_URL=postgres://ayon:ayon@postgres/ayon"
+      - "AYON_OFFLINE_MODE=true"
+      - "HTTP_PROXY=http://proxy-srv.eu.rvx.is:3128"
+      - "https_proxy=http://proxy-srv.eu.rvx.is:3128"
+      - "http_proxy=http://proxy-srv.eu.rvx.is:3128"
+      - "HTTPS_PROXY=http://proxy-srv.eu.rvx.is:3128"
+      - "all_proxy=http://proxy-srv.eu.rvx.is:3128"
+      - "ALL_PROXY=http://proxy-srv.eu.rvx.is:3128"
+      - "no_proxy=localhost,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16,10.0.0.0/8,.local,.eu.rvx.is"
+    logging:
+      driver: gelf
+      options:
+          gelf-address: udp://graylog.eu.rvx.is:5144
+          tag: "{{.ImageName}}/{{.Name}}"
+          labels: prod-server
+
+  worker:
+    image: docker-internal.eu.rvx.is/rvx/ayon-ash:latest
+    # image: ynput/ayon-ash:latest
+    hostname: worker
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+     - server
+    volumes:
+     - "/var/run/docker.sock:/var/run/docker.sock"
+    environment:
+      - "AYON_API_KEY=${AYON_API_KEY}"
+      - "AYON_SERVER_URL=http://sumarhuskarl01.eu.rvx.is:5000"
+
+
+volumes:
+  db: {}
