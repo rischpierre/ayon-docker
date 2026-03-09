@@ -22,12 +22,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - yacht_default
 
   redis:
     image: redis:alpine
     expose:
       - 6379
     restart: unless-stopped
+    networks:
+      - yacht_default
     # TODO: This check floods logs (too many writes)
     # healthcheck:
     #   test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
@@ -77,6 +81,8 @@ services:
           gelf-address: udp://graylog.eu.rvx.is:5144
           tag: "{{.ImageName}}/{{.Name}}"
           labels: prod-server
+    networks:
+      - yacht_default
 
   load-balancer:
     image: traefik:v3
@@ -95,6 +101,8 @@ services:
       - "--accesslog=false"
     depends_on:
       - server-1
+    networks:
+      - yacht_default
 
   worker:
     image: docker-internal.eu.rvx.is/rvx/ayon-ash:latest
@@ -108,6 +116,15 @@ services:
     environment:
       - "AYON_API_KEY=${AYON_API_KEY}"
       - "AYON_SERVER_URL=http://load-balancer:5000"
+    networks:
+      - yacht_default
 
 volumes:
   db: {}
+
+networks:
+  yacht_default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
