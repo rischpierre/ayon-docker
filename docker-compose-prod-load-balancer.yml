@@ -84,6 +84,51 @@ services:
     networks:
       - yacht_default
 
+  server-2:
+    image: ynput/ayon:1.13.10-20260205
+    restart: unless-stopped
+    volumes:
+      - "./addons:/addons"
+      - "./storage:/storage"
+
+      # comment out the following line on Windows
+      - "/etc/localtime:/etc/localtime:ro"
+
+      # uncomment the following line if you need to work on the backend code
+      # - "./backend:/backend"
+    # ports:
+      # - "5000:5000"
+    expose:
+      - 5000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - "AYON_POSTGRES_URL=postgres://ayon:ayon@postgres/ayon"
+      - "AYON_OFFLINE_MODE=true"
+      - "HTTP_PROXY=http://proxy-srv.eu.rvx.is:3128"
+      - "https_proxy=http://proxy-srv.eu.rvx.is:3128"
+      - "http_proxy=http://proxy-srv.eu.rvx.is:3128"
+      - "HTTPS_PROXY=http://proxy-srv.eu.rvx.is:3128"
+      - "all_proxy=http://proxy-srv.eu.rvx.is:3128"
+      - "ALL_PROXY=http://proxy-srv.eu.rvx.is:3128"
+      - "no_proxy=localhost,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16,10.0.0.0/8,.local,.eu.rvx.is"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.ayon.loadbalancer.server.port=5000"
+      - "traefik.http.routers.ayon.entrypoints=web"
+      - "traefik.http.routers.ayon.rule=PathPrefix(`/`)"
+    logging:
+      driver: gelf
+      options:
+          gelf-address: udp://graylog.eu.rvx.is:5144
+          tag: "{{.ImageName}}/{{.Name}}"
+          labels: prod-server
+    networks:
+      - yacht_default
+
   load-balancer:
     image: traefik:v3
     restart: unless-stopped
@@ -101,6 +146,7 @@ services:
       - "--accesslog=false"
     depends_on:
       - server-1
+      - server-2
     networks:
       - yacht_default
 
@@ -111,6 +157,7 @@ services:
     restart: unless-stopped
     depends_on:
       - server-1
+      - server-2
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
     environment:
